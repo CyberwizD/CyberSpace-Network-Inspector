@@ -76,6 +76,18 @@ def get_network_metrics():
         "download_speed": download_speed
     }
 
+# Security Analysis Tab
+with tabs[1]:
+    st.header("Security Analysis")
+    st.write("This section will run your security analysis.")
+    # security_analysis.run_security_analysis()
+
+    # Traffic Monitor
+    st.header("Traffic Monitor")
+    if st.button("Start Monitoring"):
+        # Placeholder for live data
+        st.write("Monitoring...")
+
 # Network Analysis Tab
 with tabs[0]:
     left_col, right_col = st.columns(2)
@@ -145,15 +157,3 @@ with tabs[0]:
 
         # Sleep to update chart every second
         time.sleep(1)
-
-# Security Analysis Tab
-with tabs[1]:
-    st.header("Security Analysis")
-    st.write("This section will run your security analysis.")
-    # security_analysis.run_security_analysis()
-
-# Traffic Monitor
-st.header("Traffic Monitor")
-if st.button("Start Monitoring"):
-    # Placeholder for live data
-    st.write("Monitoring...")
