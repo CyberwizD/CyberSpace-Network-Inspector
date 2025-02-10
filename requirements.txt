@@ -1,0 +1,14 @@
+streamlit
+scapy
+networkx
+matplotlib
+scikit-learn
+pandas
+ping3
+numpy
+networkx
+psutil 
+speedtest-cli 
+seaborn 
+plotly
+joblib
