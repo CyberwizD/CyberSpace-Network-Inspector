@@ -36,6 +36,7 @@ tabs = st.tabs(["📈 Network Analysis", "🛡️ Security Analysis"])
 
 # # Global variable to store captured packets
 packet_list = []
+stop_event = threading.Event()
 
 # Packet sniffing function (runs in a separate thread)
 def packet_callback(packet):
@@ -77,42 +78,6 @@ def get_network_metrics():
 
 # Network Analysis Tab
 with tabs[0]:
-    # packet_list = []
-
-    # def packet_callback(packet):
-    #     if IP in packet:
-    #         protocol = "TCP" if TCP in packet else "UDP" if UDP in packet else "Other"
-    #         packet_data = {
-    #             "src_ip": packet[IP].src,
-    #             "dst_ip": packet[IP].dst,
-    #             "protocol": protocol,
-    #             "size": len(packet),
-    #             "timestamp": pd.to_datetime("now")  # Add timestamp for x-axis
-    #         }
-    #         packet_list.append(packet_data)
-
-    # # Real-time network performance metrics
-    # @st.cache_data
-    # def get_network_metrics():
-    #     stats = psutil.net_io_counters()
-    #     try:
-    #         import speedtest
-    #         speed = speedtest.Speedtest()
-    #         upload_speed = speed.upload() / 1_000_000  # Convert to Mbps
-    #         download_speed = speed.download() / 1_000_000  # Convert to Mbps
-    #     except Exception as e:
-    #         st.error(f"Speedtest failed: {e}")
-    #         upload_speed = download_speed = None
-
-    #     return {
-    #         "bytes_sent": stats.bytes_sent,
-    #         "bytes_received": stats.bytes_recv,
-    #         "packets_sent": stats.packets_sent,
-    #         "packets_received": stats.packets_recv,
-    #         "upload_speed": upload_speed,
-    #         "download_speed": download_speed
-    #     }
-    
     left_col, right_col = st.columns(2)
 
     with left_col:
@@ -137,8 +102,20 @@ with tabs[0]:
             st.write("No data to display yet.")
 
     st.header("Live Packet Capture")
-    if st.button("Start Capture"):
-        threading.Thread(target=start_sniffing, daemon=True).start()
+
+    start_btn, stop_btn = st.columns(2, gap="small")
+    with start_btn:
+        if st.button("Start Capture"):
+            threading.Thread(target=start_sniffing, daemon=True).start()
+            st.write("Packet capture started.")
+            
+    with stop_btn:
+        left_, right_ = st.columns(2, gap="large")
+
+        with right_:
+            if st.button("Stop Capture"):
+                stop_event.set()
+                st.write("Packet capture stopped.")
 
     # Reserve space for real-time chart updates
     chart_placeholder = st.empty()
