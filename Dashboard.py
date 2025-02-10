@@ -3,6 +3,7 @@ import pandas as pd
 import psutil
 import time
 import speedtest
+import threading
 import plotly.express as px
 from ping3 import ping
 from scapy.all import sniff, IP, TCP, UDP
@@ -33,44 +34,85 @@ st.write("Here's a brief overview of your network and security analysis.")
 
 tabs = st.tabs(["📈 Network Analysis", "🛡️ Security Analysis"])
 
+# # Global variable to store captured packets
+packet_list = []
+
+# Packet sniffing function (runs in a separate thread)
+def packet_callback(packet):
+    if IP in packet:
+        protocol = "TCP" if TCP in packet else "UDP" if UDP in packet else "Other"
+        packet_data = {
+            "src_ip": packet[IP].src,
+            "dst_ip": packet[IP].dst,
+            "protocol": protocol,
+            "size": len(packet),
+            "timestamp": pd.to_datetime("now")  # Add timestamp for x-axis
+        }
+        packet_list.append(packet_data)
+
+# Start packet sniffing in a thread
+def start_sniffing():
+    sniff(prn=packet_callback, store=False, count=0)
+
+# Real-time network performance metrics
+@st.cache_data
+def get_network_metrics():
+    stats = psutil.net_io_counters()
+    try:
+        speed = speedtest.Speedtest()
+        upload_speed = speed.upload() / 1_000_000  # Convert to Mbps
+        download_speed = speed.download() / 1_000_000  # Convert to Mbps
+    except Exception as e:
+        st.error(f"Speedtest failed: {e}")
+        upload_speed = download_speed = None
+
+    return {
+        "bytes_sent": stats.bytes_sent,
+        "bytes_received": stats.bytes_recv,
+        "packets_sent": stats.packets_sent,
+        "packets_received": stats.packets_recv,
+        "upload_speed": upload_speed,
+        "download_speed": download_speed
+    }
+
 # Network Analysis Tab
 with tabs[0]:
-    packet_list = []
+    # packet_list = []
 
-    def packet_callback(packet):
-        if IP in packet:
-            protocol = "TCP" if TCP in packet else "UDP" if UDP in packet else "Other"
-            packet_data = {
-                "src_ip": packet[IP].src,
-                "dst_ip": packet[IP].dst,
-                "protocol": protocol,
-                "size": len(packet),
-                "timestamp": pd.to_datetime("now")  # Add timestamp for x-axis
-            }
-            packet_list.append(packet_data)
+    # def packet_callback(packet):
+    #     if IP in packet:
+    #         protocol = "TCP" if TCP in packet else "UDP" if UDP in packet else "Other"
+    #         packet_data = {
+    #             "src_ip": packet[IP].src,
+    #             "dst_ip": packet[IP].dst,
+    #             "protocol": protocol,
+    #             "size": len(packet),
+    #             "timestamp": pd.to_datetime("now")  # Add timestamp for x-axis
+    #         }
+    #         packet_list.append(packet_data)
 
-    # Real-time network performance metrics
-    @st.cache_data
-    def get_network_metrics():
-        stats = psutil.net_io_counters()
-        try:
-            import speedtest
-            speed = speedtest.Speedtest()
-            upload_speed = speed.upload() / 1_000_000  # Convert to Mbps
-            download_speed = speed.download() / 1_000_000  # Convert to Mbps
-        except Exception as e:
-            st.error(f"Speedtest failed: {e}")
-            upload_speed = download_speed = None
+    # # Real-time network performance metrics
+    # @st.cache_data
+    # def get_network_metrics():
+    #     stats = psutil.net_io_counters()
+    #     try:
+    #         import speedtest
+    #         speed = speedtest.Speedtest()
+    #         upload_speed = speed.upload() / 1_000_000  # Convert to Mbps
+    #         download_speed = speed.download() / 1_000_000  # Convert to Mbps
+    #     except Exception as e:
+    #         st.error(f"Speedtest failed: {e}")
+    #         upload_speed = download_speed = None
 
-        return {
-            "bytes_sent": stats.bytes_sent,
-            "bytes_received": stats.bytes_recv,
-            "packets_sent": stats.packets_sent,
-            "packets_received": stats.packets_recv,
-            "upload_speed": upload_speed,
-            "download_speed": download_speed
-        }
-
+    #     return {
+    #         "bytes_sent": stats.bytes_sent,
+    #         "bytes_received": stats.bytes_recv,
+    #         "packets_sent": stats.packets_sent,
+    #         "packets_received": stats.packets_recv,
+    #         "upload_speed": upload_speed,
+    #         "download_speed": download_speed
+    #     }
+    
     left_col, right_col = st.columns(2)
 
     with left_col:
@@ -81,9 +123,22 @@ with tabs[0]:
         st.metric("Bytes Sent", metrics["bytes_sent"])
         st.metric("Bytes Received", metrics["bytes_received"])
 
-    with right_col:
-        st.header("Live Packet Capture")
         sniff(prn=packet_callback, store=False, count=10)  # Capture 10 packets
+
+    df_packets = pd.DataFrame(packet_list)
+
+    with right_col:
+        if not df_packets.empty:
+            # Visualization of Network Traffic
+            st.header("Traffic Distribution")
+            fig = px.histogram(df_packets, x="protocol", title="Protocol Distribution")
+            st.plotly_chart(fig)
+        else:
+            st.write("No data to display yet.")
+
+    st.header("Live Packet Capture")
+    if st.button("Start Capture"):
+        threading.Thread(target=start_sniffing, daemon=True).start()
 
     # Reserve space for real-time chart updates
     chart_placeholder = st.empty()
@@ -105,10 +160,11 @@ with tabs[0]:
                 xaxis=dict(showgrid=True),
                 yaxis=dict(showgrid=True)
             )
-            # Update the chart with a unique key using time or index
+            # Update the chart with a unique key
             chart_placeholder.plotly_chart(fig_line, key=f"live_packet_chart_{int(time.time())}")
         else:
             st.write("No packets captured yet.")
+            break
 
         # Sleep to update chart every second
         time.sleep(1)
