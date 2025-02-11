@@ -10,11 +10,7 @@ import matplotlib.pyplot as plt
 from streamlit_folium import st_folium
 from scapy.all import sniff, IP, TCP, UDP
 
-st.logo(
-    image=r"static\logo.png",
-    size="small",
-    link="https://github.com/CyberwizD",
-)
+st.logo(image="static\logo.png", size="small", link="https://github.com/CyberwizD")
 
 @st.cache_data
 def get_public_ip():

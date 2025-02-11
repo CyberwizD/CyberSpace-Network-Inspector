@@ -15,11 +15,7 @@ st.set_page_config(
     layout="wide"
 )
 
-st.logo(
-    image=r"static\logo.png",
-    size="small",
-    link="https://github.com/CyberwizD",
-)
+st.logo(image="static\logo.png", size="small", link="https://github.com/CyberwizD")
 
 # Sidebar
 st.sidebar.title("Settings")
