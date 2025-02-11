@@ -6,7 +6,7 @@ import plotly.express as px
 @st.cache_data
 def load_dataset():
     # Load the dataset
-    dataset = pd.read_csv(r'C:\Users\WISDOM\Documents\Python Codes\StreamLit\CyberSpace Network Inspector\utils\kddcup99.csv')
+    dataset = pd.read_csv(r'..\\CyberSpace Network Inspector\utils\kddcup99.csv')
     return dataset
 
 def run_security_analysis():

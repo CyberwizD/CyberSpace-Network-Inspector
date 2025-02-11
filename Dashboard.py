@@ -16,9 +16,9 @@ st.set_page_config(
 )
 
 st.logo(
-    image=r"C:\Users\WISDOM\Documents\Python Codes\StreamLit\CyberSpace Network Inspector\static\logo.png",
+    image=r"static\logo.png",
     size="small",
-    link="https://static.streamlit.io/examples/cat.jpg",
+    link="https://github.com/CyberwizD",
 )
 
 # Sidebar
@@ -103,6 +103,7 @@ with tabs[0]:
             fig = px.histogram(df_packets, x="protocol", title="Protocol Distribution")
             st.plotly_chart(fig)
         else:
+            st.subheader("Traffic Distribution")
             st.write("No data to display yet.")
 
     st.header("Live Packet Capture")

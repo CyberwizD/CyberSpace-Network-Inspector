@@ -1,7 +1,15 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
+import socket
+import nmap
 from sklearn.ensemble import IsolationForest
+
+st.logo(
+    image=r"static\logo.png",
+    size="small",
+    link="https://github.com/CyberwizD",
+)
 
 # Set the title of the app
 st.title("CyberSpace Network Inspector")
@@ -48,7 +56,7 @@ elif options == "Malware Analysis":
 
     # Simulated malware traffic indicators
     malware_data = pd.DataFrame({
-        "Timestamp": pd.date_range(start="2022-01-01", periods=100, freq="H"),
+        "Timestamp": pd.date_range(start="2022-01-01", periods=100, freq="h"),
         "Traffic Volume": np.random.randint(100, 1000, size=100),
         "Malware Indicator": np.random.choice([0, 1], size=100, p=[0.9, 0.1])  # 10% chance of malware
     })
@@ -63,24 +71,39 @@ elif options == "Malware Analysis":
     # Highlight malware indicators
     malware_indices = malware_data[malware_data["Malware Indicator"] == 1].index
     st.write("Malware Detected at:")
-    st.write(malware_indices)
+    st.line_chart(malware_indices)
 
-# Vulnerability Scanning
+# Vulnerability Scanning Tab
 elif options == "Vulnerability Scanning":
     st.subheader("Vulnerability Scanning")
 
-    # Simulated vulnerability data
-    vulnerability_data = pd.DataFrame({
-        "Host": ["192.168.1.1", "192.168.1.2", "192.168.1.3", "192.168.1.4"],
-        "Risk Level": [3, 5, 2, 4]  # 1 (Low) to 5 (Critical)
-    })
+    # Retrieve the local host IP address
+    host_ip = socket.gethostbyname_ex(socket.gethostname())[-1][-1]
+    subnet = '.'.join(host_ip.split('.')[:-1]) + '.0/24'
 
-    # Prepare data for bar chart
-    vulnerability_data.set_index("Host", inplace=True)
+    # Scan the network for active hosts
+    nm = nmap.PortScanner()
+    nm.scan(hosts=subnet, arguments='-sn')
+    hosts = [host for host in nm.all_hosts() if nm[host].state() == "up"]
 
-    # Display bar chart
-    st.write("Vulnerability Risk Levels:")
-    st.bar_chart(vulnerability_data["Risk Level"])
+    # Check if any hosts are found
+    if not hosts:
+        st.write("No active hosts found in the network.")
+    else:
+        # Simulated vulnerability data based on active hosts
+
+        risk_levels = [3, 5, 2, 4]  # Simulated risk levels for illustration
+        vulnerability_data = pd.DataFrame({
+            "Host": hosts,
+            "Risk Level": [risk_levels[i % len(risk_levels)] for i in range(len(hosts))]  # Cycle through risk levels
+        })
+
+        # Prepare data for bar chart
+        vulnerability_data.set_index("Host", inplace=True)
+
+        # Display bar chart
+        st.write("Vulnerability Risk Levels:")
+        st.bar_chart(vulnerability_data["Risk Level"])
 
 # Footer
 st.sidebar.markdown("### About")

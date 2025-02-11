@@ -7,6 +7,12 @@ import threading
 from scapy.all import sniff, IP
 import time
 
+st.logo(
+    image=r"static\logo.png",
+    size="small",
+    link="https://github.com/CyberwizD",
+)
+
 # Initialize global variables
 packet_data = []
 capture_running = False

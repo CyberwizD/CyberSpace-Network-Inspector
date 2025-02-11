@@ -10,6 +10,12 @@ import matplotlib.pyplot as plt
 from streamlit_folium import st_folium
 from scapy.all import sniff, IP, TCP, UDP
 
+st.logo(
+    image=r"static\logo.png",
+    size="small",
+    link="https://github.com/CyberwizD",
+)
+
 @st.cache_data
 def get_public_ip():
     try:
@@ -105,9 +111,15 @@ host_ip = socket.gethostbyname(hostname)
 st.sidebar.write(f"**Host Name:** {hostname}")
 st.sidebar.write(f"**Host IP:** {host_ip}")
 
+# Get the local host IP address
+host_ip = socket.gethostbyname_ex(socket.gethostname())[-1][-1]
+
+# Extract the network part (first three octets) and append /24
+subnet = '.'.join(host_ip.split('.')[:-1]) + '.0/24'
+
 # Scan the network
 nm = nmap.PortScanner()
-nm.scan(hosts=f"{"192.168.243.0/24"}", arguments='-sn')
+nm.scan(hosts=f"{subnet}", arguments='-sn')
 hosts = [host for host in nm.all_hosts() if nm[host].state() == "up"]
 
 # Display active hosts

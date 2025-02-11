@@ -5,6 +5,12 @@ import threading
 import pandas as pd
 from scapy.all import sniff, IP
 
+st.logo(
+    image=r"static\logo.png",
+    size="small",
+    link="https://github.com/CyberwizD",
+)
+
 # Initialize variables
 packet_count = 0
 packet_loss = 0
