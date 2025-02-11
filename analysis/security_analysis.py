@@ -1,22 +1,32 @@
 import streamlit as st
-import sklearn
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from utils import utils_dataset
+import pandas as pd
+import plotly.express as px
 
+# Function to load the dataset (cached)
 @st.cache_data
+def load_dataset():
+    # Load the dataset
+    dataset = pd.read_csv(r'C:\Users\WISDOM\Documents\Python Codes\StreamLit\CyberSpace Network Inspector\utils\kddcup99.csv')
+    return dataset
+
 def run_security_analysis():
-    # Load dataset (e.g., KDD Cup 99)
-    dataset = utils_dataset.load_dataset()
+    dataset = load_dataset()
 
-    # Split dataset into training and testing sets
-    X_train, X_test, y_train, y_test = train_test_split(dataset.data, dataset.target, test_size=0.2, random_state=42)
+    # Select options for visualization
+    visualization_type = st.sidebar.selectbox("Select Visualization Type", ['Line Chart', 'Scatter Plot'])
 
-    # Train a random forest classifier
-    clf = RandomForestClassifier(n_estimators=100)
-    clf.fit(X_train, y_train)
+    # Select the feature/column to analyze
+    x_axis_column = st.selectbox("Choose X-axis feature", dataset.columns)
+    y_axis_column = st.selectbox("Choose Y-axis feature", dataset.columns)
 
-    # Evaluate the classifier
-    accuracy = clf.score(X_test, y_test)
-    st.write("Security Analysis:")
-    st.write(f"Accuracy: {accuracy:.2f}")
+    # Generate Line Chart
+    if visualization_type == 'Line Chart':
+        st.write(f"Line Chart of {x_axis_column} vs {y_axis_column}")
+        fig = px.line(dataset, x=x_axis_column, y=y_axis_column, title=f'{x_axis_column} vs {y_axis_column}')
+        st.plotly_chart(fig)
+
+    # Generate Scatter Plot
+    elif visualization_type == 'Scatter Plot':
+        st.write(f"Scatter Plot of {x_axis_column} vs {y_axis_column}")
+        fig = px.scatter(dataset, x=x_axis_column, y=y_axis_column, title=f'{x_axis_column} vs {y_axis_column}')
+        st.plotly_chart(fig)

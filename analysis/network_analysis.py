@@ -3,7 +3,21 @@ import scapy.all as scapy
 import networkx as nx
 import matplotlib.pyplot as plt
 import pandas as pd
+import plotly.express as px
 from scapy.all import sniff, IP, TCP, UDP
+from scapy.layers.inet import IP, TCP
+from scapy.layers.inet6 import IPv6
+
+# Define a dictionary to map protocol numbers to their names
+PROTOCOL_MAP = {
+    1: "ICMP",     # Internet Control Message Protocol
+    2: "IGMP",     # Internet Group Management Protocol
+    6: "TCP",      # Transmission Control Protocol
+    17: "UDP",     # User Datagram Protocol
+    47: "GRE",     # Generic Routing Encapsulation
+    50: "ESP",     # Encapsulating Security Payload
+    51: "AH",      # Authentication Header
+}
 
 @st.cache_data
 def run_network_analysis():
@@ -13,49 +27,32 @@ def run_network_analysis():
     # Analyze network protocols
     protocol_analysis = analyze_protocols(packets)
 
-    # Visualize network topology
-    network_topology = visualize_network_topology(packets)
+    # Create a DataFrame for the protocol analysis
+    protocol_counts = pd.Series(protocol_analysis).value_counts()
 
-    # Display results
-    st.write("Protocol Analysis:")
-    st.write(protocol_analysis)
-    st.write("Network Topology:")
-    st.pyplot(network_topology)
+    # Pie chart display (Plotly)
+    st.subheader("Protocol Distribution (Pie Chart)")
+    fig = px.pie(values=protocol_counts.values, names=protocol_counts.index, title="Protocol Distribution")
+    st.plotly_chart(fig)
 
+# Analyze protocols and convert protocol numbers to names
 def analyze_protocols(packets):
-    # Analyze network protocols using Scapy
     protocols = []
+    
     for packet in packets:
-        protocols.append(packet.proto)
+        if IP in packet:
+            proto_num = packet[IP].proto  # IPv4 protocol number
+            protocol = PROTOCOL_MAP.get(proto_num, f"Unknown ({proto_num})")
+            protocols.append(protocol)
+        elif IPv6 in packet:
+            proto_num = packet[IPv6].nh  # IPv6 next header (protocol number)
+            protocol = PROTOCOL_MAP.get(proto_num, f"Unknown ({proto_num})")
+            protocols.append(protocol)
+        elif TCP in packet:
+            protocols.append('TCP')  # If it's explicitly TCP
+        elif UDP in packet:
+            protocols.append('UDP')  # If it's explicitly UDP
+        else:
+            protocols.append('Unknown')  # Default for other cases
+    
     return protocols
-
-def visualize_network_topology(packets):
-    # Create a NetworkX graph
-    G = nx.Graph()
-    for packet in packets:
-        G.add_node(packet.src)
-        G.add_node(packet.dst)
-        G.add_edge(packet.src, packet.dst)
-    # Draw the graph using Matplotlib
-    pos = nx.spring_layout(G)
-    nx.draw(G, pos, with_labels=True, node_color='lightblue')
-    plt.show()
-    return plt
-
-packet_list = []
-
-def packet_callback(packet):
-    if IP in packet:
-        protocol = "TCP" if TCP in packet else "UDP" if UDP in packet else "Other"
-        packet_data = {
-            "src_ip": packet[IP].src,
-            "dst_ip": packet[IP].dst,
-            "protocol": protocol,
-            "size": len(packet)
-        }
-        packet_list.append(packet_data)
-
-# Capture network packets (Run with sudo if required)
-sniff(prn=packet_callback, store=False, count=100)
-df = pd.DataFrame(packet_list)
-print(df.head())

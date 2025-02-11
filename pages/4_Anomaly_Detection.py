@@ -1,32 +1,87 @@
 import streamlit as st
 import numpy as np
-import joblib
+import pandas as pd
 from sklearn.ensemble import IsolationForest
-from sklearn.ensemble import IsolationForest
 
-# Assuming data is network metrics (e.g., packet size, frequency)
-X = np.array([[50, 1], [100, 2], [150, 1], [6000, 10]])  # Example data
-clf = IsolationForest(random_state=0).fit(X)
-outliers = clf.predict(X)
-st.write(outliers)
+# Set the title of the app
+st.title("CyberSpace Network Inspector")
 
-# Generate sample network traffic data (replace with real data)
-X = np.random.rand(1000, 4)  # Simulated features (e.g., packet size, latency, bandwidth, etc.)
-model = IsolationForest(contamination=0.05)  # 5% anomalies
-model.fit(X)
+# Sidebar for navigation
+st.sidebar.header("Navigation")
+options = st.sidebar.radio("Select an option:", ["Intrusion Detection", "Malware Analysis", "Vulnerability Scanning"])
 
-# Save the model
-joblib.dump(model, r"C:\Users\WISDOM\Documents\Python Codes\StreamLit\CyberSpace Network Inspector\network_anomaly_model.pkl")
-
-# Load the trained model
-model = joblib.load(r"C:\Users\WISDOM\Documents\Python Codes\StreamLit\CyberSpace Network Inspector\network_anomaly_model.pkl")
-
-# Function to detect anomalies
+# Function to generate synthetic network traffic data
 @st.cache_data
-def detect_anomalies(data):
-    predictions = model.predict([data])
-    return "Anomaly" if predictions[0] == -1 else "Normal"
+def generate_network_data():
+    return np.random.rand(1000, 4) * np.array([5000, 10, 100, 100])  # Scale as needed
 
-# Example usage
-sample_data = [0.5, 0.2, 0.8, 0.3]  # Replace with real-time values
-st.write(f"Traffic Status: {detect_anomalies(sample_data)}")
+# Intrusion Detection
+if options == "Intrusion Detection":
+    st.subheader("Intrusion Detection System")
+
+    # Generate synthetic network data
+    X = generate_network_data()
+    model = IsolationForest(contamination=0.05, random_state=42)
+    model.fit(X)
+
+    # Predict anomalies
+    outliers = model.predict(X)
+    anomaly_df = pd.DataFrame(X, columns=["Packet Size", "Frequency", "Latency", "Bandwidth"])
+    anomaly_df['Anomaly'] = outliers
+
+    # Prepare data for scatter chart
+    anomaly_df['Anomaly'] = anomaly_df['Anomaly'].replace({1: 'Normal', -1: 'Anomaly'})
+
+    # Display scatter chart
+    st.write("Anomaly Detection Results:")
+    st.scatter_chart(anomaly_df[['Packet Size', 'Frequency']].rename(columns={"Packet Size": "x", "Frequency": "y"}))
+    
+    # Show anomalies separately
+    anomaly_data = anomaly_df[anomaly_df['Anomaly'] == -1]
+    if not anomaly_data.empty:
+        st.write("Detected Anomalies:")
+        st.dataframe(anomaly_data[['Packet Size', 'Frequency']])
+
+# Malware Analysis
+elif options == "Malware Analysis":
+    st.subheader("Malware Analysis")
+
+    # Simulated malware traffic indicators
+    malware_data = pd.DataFrame({
+        "Timestamp": pd.date_range(start="2022-01-01", periods=100, freq="H"),
+        "Traffic Volume": np.random.randint(100, 1000, size=100),
+        "Malware Indicator": np.random.choice([0, 1], size=100, p=[0.9, 0.1])  # 10% chance of malware
+    })
+
+    # Prepare data for line chart
+    malware_data.set_index("Timestamp", inplace=True)
+
+    # Display line chart
+    st.write("Traffic Volume with Malware Indicators:")
+    st.line_chart(malware_data["Traffic Volume"])
+
+    # Highlight malware indicators
+    malware_indices = malware_data[malware_data["Malware Indicator"] == 1].index
+    st.write("Malware Detected at:")
+    st.write(malware_indices)
+
+# Vulnerability Scanning
+elif options == "Vulnerability Scanning":
+    st.subheader("Vulnerability Scanning")
+
+    # Simulated vulnerability data
+    vulnerability_data = pd.DataFrame({
+        "Host": ["192.168.1.1", "192.168.1.2", "192.168.1.3", "192.168.1.4"],
+        "Risk Level": [3, 5, 2, 4]  # 1 (Low) to 5 (Critical)
+    })
+
+    # Prepare data for bar chart
+    vulnerability_data.set_index("Host", inplace=True)
+
+    # Display bar chart
+    st.write("Vulnerability Risk Levels:")
+    st.bar_chart(vulnerability_data["Risk Level"])
+
+# Footer
+st.sidebar.markdown("### About")
+st.sidebar.caption("This application provides insights into network security through anomaly detection, malware analysis, and vulnerability scanning.")

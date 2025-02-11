@@ -70,11 +70,18 @@ start_btn, stop_btn = st.columns(2, gap="large")
 # Create a button to start capturing packets
 with start_btn:
     if st.button("Start"):
+        st.success("Packet capture started.")
         stop_event.clear()
 
         # Start packet capture in a thread
         capture_thread = threading.Thread(target=capture_packets)
         capture_thread.start()
+
+# Button to stop capturing packets
+with stop_btn:
+    if st.button("Stop"):
+        st.error("Packet capture stopped.")
+        stop_event.clear()
 
 # Continuously update the chart and metrics in the main Streamlit loop
 while not stop_event.is_set():
@@ -90,7 +97,4 @@ while not stop_event.is_set():
     
     time.sleep(1)  # Adjust sleep time for update frequency
 
-# Button to stop capturing packets
-with stop_btn:
-    if st.button("Stop"):
-        stop_event.set()
+

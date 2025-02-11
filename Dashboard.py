@@ -9,17 +9,14 @@ from ping3 import ping
 from scapy.all import sniff, IP, TCP, UDP
 from analysis import network_analysis, security_analysis
 
-# response_time = ping('google.com')
-# st.write(f"Ping to Google: {response_time} ms")
-
 st.set_page_config(
     page_title="CyberSpace Network Inspector", 
-    page_icon=":Network:",
+    page_icon=":shield:",
     layout="wide"
 )
 
 st.logo(
-    image=r"C:\Users\WISDOM\Documents\Python Codes\StreamLit\CyberSpace Network Inspector\static\google.png",
+    image=r"C:\Users\WISDOM\Documents\Python Codes\StreamLit\CyberSpace Network Inspector\static\logo.png",
     size="small",
     link="https://static.streamlit.io/examples/cat.jpg",
 )
@@ -78,22 +75,17 @@ def get_network_metrics():
 
 # Security Analysis Tab
 with tabs[1]:
-    st.header("Security Analysis")
     st.write("This section will run your security analysis.")
-    # security_analysis.run_security_analysis()
+    network_analysis.run_network_analysis()
 
-    # Traffic Monitor
-    st.header("Traffic Monitor")
-    if st.button("Start Monitoring"):
-        # Placeholder for live data
-        st.write("Monitoring...")
+    security_analysis.run_security_analysis()
 
 # Network Analysis Tab
 with tabs[0]:
     left_col, right_col = st.columns(2)
 
     with left_col:
-        st.header("Network Performance Metrics")
+        st.subheader("Network Performance Metrics")
         metrics = get_network_metrics()
         st.metric("Upload Speed (Mbps)", round(metrics["upload_speed"], 2) if metrics["upload_speed"] else "N/A")
         st.metric("Download Speed (Mbps)", round(metrics["download_speed"], 2) if metrics["download_speed"] else "N/A")
@@ -107,7 +99,7 @@ with tabs[0]:
     with right_col:
         if not df_packets.empty:
             # Visualization of Network Traffic
-            st.header("Traffic Distribution")
+            st.subheader("Traffic Distribution")
             fig = px.histogram(df_packets, x="protocol", title="Protocol Distribution")
             st.plotly_chart(fig)
         else:
@@ -119,15 +111,12 @@ with tabs[0]:
     with start_btn:
         if st.button("Start Capture"):
             threading.Thread(target=start_sniffing, daemon=True).start()
-            st.write("Packet capture started.")
+            st.success("Packet capture started.")
             
     with stop_btn:
-        left_, right_ = st.columns(2, gap="large")
-
-        with right_:
-            if st.button("Stop Capture"):
-                stop_event.set()
-                st.write("Packet capture stopped.")
+        if st.button("Stop Capture"):
+            stop_event.set()
+            st.error("Packet capture stopped.")            
 
     # Reserve space for real-time chart updates
     chart_placeholder = st.empty()

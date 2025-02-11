@@ -1,96 +1,134 @@
 import streamlit as st
 import nmap
 import pandas as pd
-import matplotlib.pyplot as plt
 import psutil
-import time
+import socket
 import threading
 from scapy.all import sniff, IP
+import time
 
-# Initialize nmap scanner
+# Initialize global variables
+packet_data = []
+capture_running = False
+vulnerabilities = []
+scanning = False
+
+byte_sent = 0
+byte_rec = 0
+
+# Initialize Nmap scanner
 scanner = nmap.PortScanner()
 
 # Function to scan network segments
 def scan_network():
-    st.subheader("Network Segmentation Analysis")
-    st.write("Scanning network for vulnerabilities...")
-    scan_results = scanner.all_hosts()
-    vulnerabilities = []
+    global vulnerabilities, scanning
+    scanning = True
+    ip_range = f"{socket.gethostbyname_ex(socket.gethostname())[-1][-1]}"  # Local IP
+    scanner.scan(ip_range, arguments='--script vuln')  # Scan for vulnerabilities
+    vulnerabilities.clear()
     
-    for host in scan_results:
-        scanner.scan(host, arguments='--script vuln')
+    for host in scanner.all_hosts():
         if 'vulns' in scanner[host]:
             vulnerabilities.append((host, scanner[host]['vulns']))
     
-    return vulnerabilities
+    scanning = False
 
-# Function to capture packets and filter
+# Function to capture packets
 def packet_callback(packet):
     global packet_data
-    if packet.haslayer(IP):
+    if IP in packet:
         packet_data.append(packet[IP].src)
 
-packet_data = []
-
 # Start packet capture in a thread
-def capture_packets():
-    sniff(filter="ip", prn=packet_callback, store=0)
+def start_capture():
+    global capture_running
+    capture_running = True
+    sniff(prn=packet_callback, store=0)
 
-# Function to plot bandwidth utilization
-def plot_bandwidth_utilization():
+# Stop packet capture
+def stop_capture():
+    global capture_running
+    capture_running = False
+
+# Streamlit App Title
+st.title("Network Security and Performance Analysis")
+st.subheader("Network Segmentation Analysis")
+
+st.sidebar.title("Network Metrics")
+
+# Use st.empty() placeholders for network metrics so they can be updated dynamically
+bytes_sent_placeholder = st.sidebar.empty()
+bytes_received_placeholder = st.sidebar.empty()
+
+# Network Segmentation Button
+if st.button("Scan Network"):
+    st.write("Scanning network for vulnerabilities...")
+    threading.Thread(target=scan_network, daemon=True).start()
+
+    # Add a loading spinner while scanning
+    with st.spinner("Scanning..."):
+        while scanning:  # Wait for the scan to finish
+            time.sleep(1)
+
+    # Display vulnerabilities in a DataFrame
+    if vulnerabilities:
+        st.write("Vulnerabilities found:")
+        vuln_data = [(host, vuln) for host, vulns in vulnerabilities for vuln in vulns.items()]
+        vuln_df = pd.DataFrame(vuln_data, columns=["Host", "Vulnerability"])
+        st.dataframe(vuln_df)
+    else:
+        st.write("No vulnerabilities found.")
+
+st.subheader("Packet Capture Analysis")
+
+# Start and Stop Capture Buttons
+start_col, stop_col = st.columns(2)
+
+with start_col:
+    if st.button("Start Packet Capture"):
+        packet_data.clear()  # Clear previous data
+        threading.Thread(target=start_capture, daemon=True).start()
+        st.success("Packet capture started...")
+
+with stop_col:
+    if st.button("Stop Packet Capture"):
+        stop_capture()
+        st.error("Packet capture stopped.")
+
+# Display Bandwidth Utilization as Bar Chart
+st.header("Bandwidth Utilization")
+
+# Reserve space for the bar chart
+chart_placeholder = st.empty()
+
+# Continuous update of bytes sent and received
+while True:
     net_io = psutil.net_io_counters()
     bytes_sent = net_io.bytes_sent
-    bytes_recv = net_io.bytes_recv
-    data = {'Sent (bytes)': bytes_sent, 'Received (bytes)': bytes_recv}
+    bytes_received = net_io.bytes_recv
     
-    fig, ax = plt.subplots()
-    ax.bar(data.keys(), data.values())
-    ax.set_ylabel('Bytes')
-    ax.set_title('Bandwidth Utilization')
-    st.pyplot(fig)
+    # Create a DataFrame for the bar chart
+    data = pd.DataFrame({
+        'Metric': ['Bytes Sent', 'Bytes Received'],
+        'Value': [bytes_sent, bytes_received]
+    })
 
-# Function to display performance metrics
-def display_performance_metrics():
-    st.subheader("Performance Metrics")
-    st.write("Monitoring network performance...")
-    while True:
-        net_io = psutil.net_io_counters()
-        st.write(f"Bytes Sent: {net_io.bytes_sent}")
-        st.write(f"Bytes Received: {net_io.bytes_recv}")
-        time.sleep(2)
+    # Display the bar chart
+    chart_placeholder.bar_chart(data.set_index('Metric'))
 
-# Streamlit App
-st.title("Network Security and Performance Analysis")
+    # Sleep for a short duration before updating
+    time.sleep(1)
 
-# Network Segmentation
-vulnerabilities = scan_network()
-if vulnerabilities:
-    st.write("Vulnerabilities found:")
-    for host, vuln in vulnerabilities:
-        st.write(f"Host: {host}, Vulnerabilities: {vuln}")
-else:
-    st.write("No vulnerabilities found.")
+    # Update the sidebar values
+    bytes_sent_placeholder.write(f"Bytes Sent: {bytes_sent}")
+    bytes_received_placeholder.write(f"Bytes Received: {bytes_received}")
 
-# Start packet capture
-if st.button("Start Packet Capture"):
-    packet_data = []
-    capture_thread = threading.Thread(target=capture_packets)
-    capture_thread.start()
-    st.write("Packet capture started...")
+    # Break the loop if capture is stopped
+    if not capture_running:
+        break
 
-# Display captured packets
-if st.button("Show Captured Packets"):
-    if packet_data:
-        st.write("Captured IP Addresses:")
-        st.write(packet_data)
-    else:
-        st.write("No packets captured.")
-
-# Bandwidth Utilization Chart
-plot_bandwidth_utilization()
-
-# Display Performance Metrics in a thread
-performance_thread = threading.Thread(target=display_performance_metrics)
-performance_thread.start()
-
-# Additional analysis and features can be added here
+# Display captured packets after stopping
+if not capture_running and packet_data:
+    st.header("Captured Packets")
+    st.write("Captured IP Addresses:")
+    st.write(packet_data)
