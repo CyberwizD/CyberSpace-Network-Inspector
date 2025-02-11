@@ -72,7 +72,7 @@ def get_network_metrics():
 # Security Analysis Tab
 with tabs[1]:
     st.write("This section will run your security analysis.")
-    network_analysis.run_network_analysis()
+    # network_analysis.run_network_analysis()
 
     security_analysis.run_security_analysis()
 
