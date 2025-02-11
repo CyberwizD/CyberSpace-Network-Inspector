@@ -6,7 +6,7 @@ scikit-learn
 pandas
 ping3
 numpy
-nmap
+python-nmap
 networkx
 psutil 
 speedtest-cli 
