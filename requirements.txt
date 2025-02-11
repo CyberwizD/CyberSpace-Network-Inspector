@@ -16,5 +16,4 @@ joblib
 folium
 requests
 streamlit_folium
-sklearn
 speedtest
