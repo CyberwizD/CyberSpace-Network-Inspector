@@ -5,7 +5,7 @@ import socket
 import nmap
 from sklearn.ensemble import IsolationForest
 
-st.logo(image="static\logo.png", size="small", link="https://github.com/CyberwizD")
+st.logo(image="static/logo.png", size="small", link="https://github.com/CyberwizD")
 
 # Set the title of the app
 st.title("CyberSpace Network Inspector")
