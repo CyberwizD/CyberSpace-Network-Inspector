@@ -13,11 +13,8 @@ speedtest-cli
 seaborn 
 plotly
 joblib
-threading
-time
 folium
 requests
-socket
 streamlit_folium
 sklearn
 speedtest
